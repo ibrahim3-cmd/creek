@@ -1,0 +1,45 @@
+Manifest-Version: 1.0
+Created-By: 1.6.0_12 (Sun Microsystems Inc.)
+
+Name: res/drawable/colorpicker.png
+SHA1-Digest: Q3fAM/RcjRLmcWZ13L1W4kj8Oio=
+
+Name: res/layout/number_picker.xml
+SHA1-Digest: nPvbSARdrJzMD/v0egNwyPoteLM=
+
+Name: res/layout/fullversion.xml
+SHA1-Digest: +ulUbjhfTRqcstGb4QGoitlVHhY=
+
+Name: res/layout/list_item_icon_text.xml
+SHA1-Digest: 9mKAK8zgj6eUk0wQE7qEuZeuM9Y=
+
+Name: resources.arsc
+SHA1-Digest: 62SoFVecmvihI2DkRQJkEyfEeLQ=
+
+Name: classes.dex
+SHA1-Digest: kuujRVt2LjIMQXxmu9sE13kWv2A=
+
+Name: res/layout/color_picker.xml
+SHA1-Digest: 8NucFsTP6Q/bIEXa4gDCsYlVdsw=
+
+Name: res/layout/main.xml
+SHA1-Digest: Ro1uHihFk/+B1FYxQ6OtDVfmbfc=
+
+Name: AndroidManifest.xml
+SHA1-Digest: kz+BONHSIlFE7oSViQjcGePsvQs=
+
+Name: res/layout/list_choose_fish.xml
+SHA1-Digest: KTILwj/jgthpaJovu8oDQ4DUgtY=
+
+Name: res/drawable/icon.png
+SHA1-Digest: 992HiW1UkJgakwpWmiXWBP+Qxww=
+
+Name: res/layout/about.xml
+SHA1-Digest: m9xWRqg4i2yg+j8MB19jbBY7+3k=
+
+Name: res/layout/list_choose_fish2.xml
+SHA1-Digest: l8hH9lHEvKEfNChzzItPnOZE7cU=
+
+Name: res/layout/color_picker_title.xml
+SHA1-Digest: MzDy1SgsnzYGbXDCgkK9+mJ1c6Q=
+
