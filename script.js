@@ -1044,6 +1044,329 @@ class Bird {
     }
 }
 
+class Trunk {
+    constructor(pond) {
+        this.pond = pond;
+        this.reset();
+    }
+
+    reset() {
+        // Move to the very corner (Top-Right)
+        this.x = this.pond.canvas.width - 100;
+        this.y = 100;
+        this.angle = Math.PI * 0.75; 
+        this.length = 180 + Math.random() * 40;
+        this.width = 22 + Math.random() * 5;
+        
+        // Branches
+        this.branches = [];
+        const numBranches = 2 + Math.floor(Math.random() * 2);
+        for (let i = 0; i < numBranches; i++) {
+            this.branches.push({
+                pos: 0.2 + (i / numBranches) * 0.6, 
+                angle: (Math.random() - 0.5) * Math.PI * 0.8,
+                length: 40 + Math.random() * 30,
+                width: this.width * 0.6,
+                // Static texture seeds to prevent blinking
+                moss: Array.from({length: 4}, () => ({
+                    ox: (Math.random()-0.5),
+                    oy: (Math.random()-0.5),
+                    os: 0.2 + Math.random()*0.2
+                }))
+            });
+        }
+
+        // Static trunk moss
+        this.trunkMoss = Array.from({length: 8}, () => ({
+            ox: (Math.random()-0.5),
+            oy: (Math.random()-0.5),
+            os: 0.2 + Math.random()*0.2
+        }));
+
+        // Sunbathing spots for turtles
+        this.spots = [];
+        const numSpots = 3;
+        for (let i = 0; i < numSpots; i++) {
+            this.spots.push({
+                pos: 0.2 + (i / numSpots) * 0.6,
+                occupied: null 
+            });
+        }
+    }
+
+    draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+        ctx.beginPath();
+        ctx.ellipse(0, 8, this.length * 0.5, this.width * 0.6, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Main Trunk
+        const drawSegment = (len, wid, skin, mossData) => {
+            ctx.fillStyle = skin;
+            ctx.beginPath();
+            ctx.roundRect(-len * 0.5, -wid * 0.5, len, wid, wid * 0.5);
+            ctx.fill();
+            
+            // Texture/Moss (Static, using pre-generated data)
+            ctx.fillStyle = 'rgba(20, 50, 20, 0.3)';
+            mossData.forEach(m => {
+                ctx.beginPath();
+                ctx.arc(m.ox * len, m.oy * wid, wid * m.os, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        };
+
+        // Draw branches
+        this.branches.forEach(br => {
+            ctx.save();
+            ctx.translate(-this.length * 0.5 + this.length * br.pos, 0);
+            ctx.rotate(br.angle);
+            drawSegment(br.length, br.width, '#5D4037', br.moss);
+            ctx.restore();
+        });
+
+        // Main wood
+        const grad = ctx.createLinearGradient(0, -this.width*0.5, 0, this.width*0.5);
+        grad.addColorStop(0, '#5D4037');
+        grad.addColorStop(0.5, '#795548');
+        grad.addColorStop(1, '#4E342E');
+        drawSegment(this.length, this.width, grad, this.trunkMoss);
+
+        ctx.restore();
+    }
+}
+
+class Turtle {
+    constructor(pond) {
+        this.pond = pond;
+        this.reset();
+    }
+
+    reset() {
+        this.x = Math.random() * this.pond.canvas.width;
+        this.y = Math.random() * this.pond.canvas.height;
+        this.size = 12 + Math.random() * 5;
+        this.baseSize = this.size;
+        this.angle = Math.random() * Math.PI * 2;
+        this.targetAngle = this.angle;
+        this.speed = 0.3 + Math.random() * 0.2;
+        
+        // Depth: 0 is surface, 1 is deep underwater
+        this.depth = 1; 
+        this.targetDepth = 1;
+        this.depthSpeed = 0.005;
+        
+        // Dive/Surface timer
+        this.diveTimer = 100 + Math.random() * 300;
+        
+        this.state = 'UNDERWATER'; // UNDERWATER, SURFACE, APPROACHING, CLIMBING, SUNBATHING, DROPPING
+        this.targetSpot = null;
+        this.sunbatheTimer = 0;
+        this.paddlingPhase = Math.random() * Math.PI * 2;
+        this.dropProgress = 0;
+    }
+
+    update() {
+        // Depth handling
+        if (Math.abs(this.depth - this.targetDepth) > 0.01) {
+            this.depth += (this.targetDepth - this.depth) * this.depthSpeed;
+            this.size = this.baseSize * (0.6 + (1 - this.depth) * 0.4);
+        }
+
+        if (this.state === 'UNDERWATER' || this.state === 'SURFACE' || this.state === 'APPROACHING') {
+            this.angle += Math.sin(Date.now() * 0.001) * 0.01;
+            
+            let moveSpeed = this.speed;
+            
+            // Randomly decide to surface or dive
+            this.diveTimer--;
+            if (this.diveTimer <= 0) {
+                if (this.state === 'UNDERWATER') {
+                    this.state = 'SURFACE';
+                    this.targetDepth = 0;
+                    this.diveTimer = 200 + Math.random() * 400;
+                } else if (this.state === 'SURFACE') {
+                    this.state = 'UNDERWATER';
+                    this.targetDepth = 1;
+                    this.diveTimer = 400 + Math.random() * 800;
+                }
+            }
+
+            if (this.state === 'APPROACHING') {
+                if (!this.targetSpot) {
+                    this.state = 'SURFACE';
+                } else {
+                    const spotX = this.targetSpot.trunk.x + Math.cos(this.targetSpot.trunk.angle) * (-this.targetSpot.trunk.length * 0.5 + this.targetSpot.trunk.length * this.targetSpot.spot.pos);
+                    const spotY = this.targetSpot.trunk.y + Math.sin(this.targetSpot.trunk.angle) * (-this.targetSpot.trunk.length * 0.5 + this.targetSpot.trunk.length * this.targetSpot.spot.pos);
+                    
+                    const dx = spotX - this.x;
+                    const dy = spotY - this.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    
+                    this.targetAngle = Math.atan2(dy, dx);
+                    let angleDiff = this.targetAngle - this.angle;
+                    while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+                    while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+                    this.angle += angleDiff * 0.05;
+                    
+                    moveSpeed = 0.8;
+
+                    // Start surfacing as we approach trunk
+                    this.targetDepth = 0;
+
+                    if (dist < 20 && this.depth < 0.2) {
+                        this.state = 'CLIMBING';
+                    }
+                }
+            }
+
+            this.x += Math.cos(this.angle) * moveSpeed;
+            this.y += Math.sin(this.angle) * moveSpeed;
+            this.paddlingPhase += 0.05;
+
+            // Chance to climb a trunk if currently at surface
+            if (this.state === 'SURFACE' && Math.random() < 0.005) {
+                this.findTrunk();
+            }
+        } 
+        else if (this.state === 'CLIMBING') {
+            if (!this.targetSpot) {
+                this.state = 'SURFACE';
+                this.targetDepth = 0;
+                return;
+            }
+            const spotX = this.targetSpot.trunk.x + Math.cos(this.targetSpot.trunk.angle) * (-this.targetSpot.trunk.length * 0.5 + this.targetSpot.trunk.length * this.targetSpot.spot.pos);
+            const spotY = this.targetSpot.trunk.y + Math.sin(this.targetSpot.trunk.angle) * (-this.targetSpot.trunk.length * 0.5 + this.targetSpot.trunk.length * this.targetSpot.spot.pos);
+            
+            const dx = spotX - this.x;
+            const dy = spotY - this.y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            
+            this.targetAngle = Math.atan2(dy, dx);
+            let angleDiff = this.targetAngle - this.angle;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            this.angle += angleDiff * 0.05;
+            
+            const struggle = Math.sin(Date.now() * 0.02) > 0.3 ? 1 : 0;
+            const jitter = (Math.random() - 0.5) * 0.6;
+            
+            this.x += Math.cos(this.angle) * 0.6 * struggle + Math.cos(this.angle + Math.PI/2) * jitter;
+            this.y += Math.sin(this.angle) * 0.6 * struggle + Math.sin(this.angle + Math.PI/2) * jitter;
+            
+            this.paddlingPhase += 0.2;
+
+            if (dist < 5) {
+                this.state = 'SUNBATHING';
+                this.sunbatheTimer = 300 + Math.random() * 600;
+                this.x = spotX;
+                this.y = spotY;
+                this.angle = this.targetSpot.trunk.angle + Math.PI * 0.5 * (Math.random() > 0.5 ? 1 : -1);
+                this.depth = 0;
+                this.targetDepth = 0;
+            }
+        }
+        else if (this.state === 'SUNBATHING') {
+            this.sunbatheTimer--;
+            if (this.sunbatheTimer <= 0) {
+                this.state = 'DROPPING';
+                this.dropProgress = 0;
+            }
+        }
+        else if (this.state === 'DROPPING') {
+            this.dropProgress += 0.05;
+            
+            // Just drop vertically and disappear
+            if (this.dropProgress >= 1) {
+                // Move forward a bit based on current angle for a natural jump
+                const jumpDist = 15;
+                this.x += Math.cos(this.angle) * jumpDist;
+                this.y += Math.sin(this.angle) * jumpDist;
+
+                this.pond.splashes.push(new Splash(this.x, this.y));
+                if (this.targetSpot) this.targetSpot.spot.occupied = null;
+                this.targetSpot = null;
+                this.state = 'UNDERWATER';
+                this.depth = 1;
+                this.targetDepth = 1;
+                this.size = this.baseSize * 0.6;
+                this.diveTimer = 400 + Math.random() * 800;
+            }
+        }
+
+        const pad = 50;
+        if (this.x < -pad) this.x = this.pond.canvas.width + pad;
+        if (this.x > this.pond.canvas.width + pad) this.x = -pad;
+        if (this.y < -pad) this.y = this.pond.canvas.height + pad;
+        if (this.y > this.pond.canvas.height + pad) this.y = -pad;
+    }
+
+    findTrunk() {
+        for (const trunk of this.pond.trunks) {
+            for (const spot of trunk.spots) {
+                if (!spot.occupied) {
+                    spot.occupied = this;
+                    this.targetSpot = { trunk, spot };
+                    this.state = 'APPROACHING'; // New state for smooth swimming to trunk
+                    return;
+                }
+            }
+        }
+    }
+
+    draw(ctx) {
+        if (this.state === 'DROPPING') return; // Hidden while vertically dropping
+
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.angle);
+
+        // Transparency based on depth
+        const opac = this.state === 'SUNBATHING' || this.state === 'CLIMBING' ? 1 : 0.4 + (1 - this.depth) * 0.6;
+        ctx.globalAlpha = opac;
+
+        // Legs (paddling)
+        if (this.state !== 'SUNBATHING') {
+            const paddle = Math.sin(this.paddlingPhase) * 0.3;
+            ctx.fillStyle = '#2D4B2D';
+            ctx.beginPath(); ctx.ellipse(this.size*0.4, -this.size*0.4 + paddle*5, this.size*0.2, this.size*0.3, 0.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(this.size*0.4, this.size*0.4 - paddle*5, this.size*0.2, this.size*0.3, -0.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(-this.size*0.4, -this.size*0.4 - paddle*5, this.size*0.2, this.size*0.3, -0.5, 0, Math.PI*2); ctx.fill();
+            ctx.beginPath(); ctx.ellipse(-this.size*0.4, this.size*0.4 + paddle*5, this.size*0.2, this.size*0.3, 0.5, 0, Math.PI*2); ctx.fill();
+        }
+
+        // Shell
+        ctx.fillStyle = '#1B3022'; 
+        ctx.strokeStyle = '#2D4B2D';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.size, this.size * 0.8, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        // Pattern
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+        for(let i=0; i<3; i++) {
+            ctx.beginPath();
+            ctx.arc(0, 0, this.size * (0.3 + i*0.2), 0, Math.PI*2);
+            ctx.stroke();
+        }
+
+        // Head
+        ctx.fillStyle = '#2D4B2D';
+        ctx.beginPath();
+        ctx.ellipse(this.size * 0.9, 0, this.size * 0.3, this.size * 0.22, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+    }
+}
+
 
 class GroovyFish {
     constructor() {
@@ -1058,6 +1381,8 @@ class GroovyFish {
         this.flies = [];
         this.ducks = [];
         this.birds = [];
+        this.trunks = [];
+        this.turtles = [];
         this.splashes = [];
         this.mousePos = { x: 0, y: 0 };
         
@@ -1079,6 +1404,8 @@ class GroovyFish {
         this.createFlies();
         this.createDucks();
         this.createBirds();
+        this.createTrunks();
+        this.createTurtles();
         this.setupEventListeners();
         this.animate();
     }
@@ -1237,6 +1564,18 @@ class GroovyFish {
             this.birds.push(new Bird(this));
         }
     }
+
+    createTrunks() {
+        this.trunks = [];
+        this.trunks.push(new Trunk(this)); // Just one trunk
+    }
+
+    createTurtles() {
+        this.turtles = [];
+        for (let i = 0; i < 4; i++) {
+            this.turtles.push(new Turtle(this));
+        }
+    }
     
     dropFood(x, y) {
         this.food.push({
@@ -1327,6 +1666,9 @@ class GroovyFish {
         // Update birds
         this.birds.forEach(bird => bird.update());
 
+        // Update turtles
+        this.turtles.forEach(turtle => turtle.update());
+
         // Update splashes
         this.splashes = this.splashes.filter(splash => splash.update());
         
@@ -1355,6 +1697,13 @@ class GroovyFish {
             }
         });
         
+        // Draw turtles that are SWIMMING (under lily pads)
+        this.turtles.forEach(turtle => {
+            if (turtle.state === 'UNDERWATER' || turtle.state === 'SURFACE' || turtle.state === 'APPROACHING') {
+                turtle.draw(ctx);
+            }
+        });
+
         // Draw food (on water surface)
         this.food.forEach(food => this.drawFood(food));
         
@@ -1369,6 +1718,16 @@ class GroovyFish {
 
         // Draw ducks
         this.ducks.forEach(duck => duck.draw(ctx));
+
+        // Draw trunks (Turtles will sit on these)
+        this.trunks.forEach(trunk => trunk.draw(ctx));
+
+        // Draw turtles that are ON THE TRUNK
+        this.turtles.forEach(turtle => {
+            if (turtle.state === 'SUNBATHING' || turtle.state === 'CLIMBING') {
+                turtle.draw(ctx);
+            }
+        });
 
         // Draw birds
         this.birds.forEach(bird => bird.draw(ctx));
