@@ -52,6 +52,10 @@ class GroovyFish {
         this.lastTime = 0;
         this.frameCount = 0;
 
+        // Mobile rotation state
+        this.isRotated = false;
+        this.hasRequestedFullscreen = false;
+
         this.init();
     }
     
@@ -71,8 +75,53 @@ class GroovyFish {
     }
     
     resizeCanvas() {
-        this.canvas.width = window.innerWidth;
-        this.canvas.height = window.innerHeight;
+        const vw = window.innerWidth;
+        const vh = window.innerHeight;
+        const isMobile = ('ontouchstart' in window || navigator.maxTouchPoints > 0) && Math.min(vw, vh) < 768;
+        const isPortrait = vh > vw;
+
+        if (isMobile && isPortrait) {
+            // Portrait mobile: rotate canvas to landscape
+            this.isRotated = true;
+            this.canvas.width = vh;   // landscape width = screen height
+            this.canvas.height = vw;  // landscape height = screen width
+            this.canvas.style.transformOrigin = 'top left';
+            this.canvas.style.transform = `rotate(90deg) translateY(-100%)`;
+            this.canvas.style.width = vh + 'px';
+            this.canvas.style.height = vw + 'px';
+        } else {
+            // Landscape or desktop: normal
+            this.isRotated = false;
+            this.canvas.width = vw;
+            this.canvas.height = vh;
+            this.canvas.style.transform = 'none';
+            this.canvas.style.transformOrigin = '';
+            this.canvas.style.width = '';
+            this.canvas.style.height = '';
+        }
+    }
+
+    // Remap screen coordinates to canvas coordinates (accounting for rotation)
+    remapCoords(screenX, screenY) {
+        if (this.isRotated) {
+            // When rotated 90° CW: canvas X = screenY, canvas Y = canvasHeight - screenX
+            return {
+                x: screenY,
+                y: this.canvas.height - screenX
+            };
+        }
+        return { x: screenX, y: screenY };
+    }
+
+    // Try to enter fullscreen on mobile for immersive experience
+    tryFullscreen() {
+        if (this.hasRequestedFullscreen) return;
+        this.hasRequestedFullscreen = true;
+        const el = document.documentElement;
+        const requestFs = el.requestFullscreen || el.webkitRequestFullscreen || el.mozRequestFullScreen || el.msRequestFullscreen;
+        if (requestFs) {
+            requestFs.call(el).catch(() => {});
+        }
     }
     
     setupEventListeners() {
@@ -80,17 +129,34 @@ class GroovyFish {
             this.resizeCanvas();
             this.createLilyPads();
         });
+
+        // Also handle orientation changes on mobile
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => {
+                this.resizeCanvas();
+                this.createLilyPads();
+            }, 200);
+        });
+
+        // Handle fullscreen change — resize when entering/leaving
+        document.addEventListener('fullscreenchange', () => {
+            setTimeout(() => {
+                this.resizeCanvas();
+                this.createLilyPads();
+            }, 200);
+        });
         
         this.canvas.addEventListener('mousemove', (e) => {
+            const pos = this.remapCoords(e.clientX, e.clientY);
             this.lastMousePos.x = this.mousePos.x;
             this.lastMousePos.y = this.mousePos.y;
-            this.mousePos.x = e.clientX;
-            this.mousePos.y = e.clientY;
+            this.mousePos.x = pos.x;
+            this.mousePos.y = pos.y;
 
             // Drag-feed when holding mouse
             if (this.isMouseDown) {
                 if (Math.random() < 0.3) {
-                    this.dropFood(e.clientX + (Math.random()-0.5)*20, e.clientY + (Math.random()-0.5)*20);
+                    this.dropFood(pos.x + (Math.random()-0.5)*20, pos.y + (Math.random()-0.5)*20);
                 }
             }
         });
@@ -104,18 +170,19 @@ class GroovyFish {
         });
         
         this.canvas.addEventListener('click', (e) => {
+            const pos = this.remapCoords(e.clientX, e.clientY);
             // Drop multiple food pieces
             const count = 3 + Math.floor(this.feedStreak * 0.5);
             for (let i = 0; i < Math.min(count, 8); i++) {
                 this.dropFood(
-                    e.clientX + (Math.random() - 0.5) * 40,
-                    e.clientY + (Math.random() - 0.5) * 40
+                    pos.x + (Math.random() - 0.5) * 40,
+                    pos.y + (Math.random() - 0.5) * 40
                 );
             }
             // Water splash on click
-            this.splashes.push(new Splash(e.clientX, e.clientY));
+            this.splashes.push(new Splash(pos.x, pos.y));
             // Ripple
-            this.ripples.push({ x: e.clientX, y: e.clientY, radius: 5, maxRadius: 60 + Math.random()*20, life: 1 });
+            this.ripples.push({ x: pos.x, y: pos.y, radius: 5, maxRadius: 60 + Math.random()*20, life: 1 });
 
             this.feedStreak++;
             this.feedStreakTimer = 120;
@@ -123,23 +190,27 @@ class GroovyFish {
         
         this.canvas.addEventListener('touchstart', (e) => {
             e.preventDefault();
+            // Try fullscreen on first touch
+            this.tryFullscreen();
             const touch = e.touches[0];
+            const pos = this.remapCoords(touch.clientX, touch.clientY);
             for (let i = 0; i < 3; i++) {
                 this.dropFood(
-                    touch.clientX + (Math.random() - 0.5) * 40,
-                    touch.clientY + (Math.random() - 0.5) * 40
+                    pos.x + (Math.random() - 0.5) * 40,
+                    pos.y + (Math.random() - 0.5) * 40
                 );
             }
-            this.splashes.push(new Splash(touch.clientX, touch.clientY));
+            this.splashes.push(new Splash(pos.x, pos.y));
         });
 
         this.canvas.addEventListener('touchmove', (e) => {
             e.preventDefault();
             const touch = e.touches[0];
-            this.mousePos.x = touch.clientX;
-            this.mousePos.y = touch.clientY;
+            const pos = this.remapCoords(touch.clientX, touch.clientY);
+            this.mousePos.x = pos.x;
+            this.mousePos.y = pos.y;
             if (Math.random() < 0.3) {
-                this.dropFood(touch.clientX + (Math.random()-0.5)*20, touch.clientY + (Math.random()-0.5)*20);
+                this.dropFood(pos.x + (Math.random()-0.5)*20, pos.y + (Math.random()-0.5)*20);
             }
         });
     }
