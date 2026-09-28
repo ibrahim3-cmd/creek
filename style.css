@@ -1,5 +1,6 @@
 /*   Fish - Premium Full-Screen Style */
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Playfair+Display:wght@600;700;800&display=swap");
 
 * {
   margin: 0;
@@ -48,6 +49,28 @@ body {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
+.poem-link {
+  position: fixed;
+  right: 28px;
+  bottom: 28px;
+  z-index: 12;
+  text-decoration: none;
+  color: #fffaf4;
+  background: linear-gradient(135deg, rgba(122, 88, 168, 0.82), rgba(75, 127, 184, 0.9));
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 18px 35px rgba(51, 35, 79, 0.35);
+  padding: 14px 22px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.poem-link:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 22px 40px rgba(51, 35, 79, 0.45);
+}
+
 @keyframes hintFade {
   0% {
     opacity: 0;
@@ -67,11 +90,196 @@ body {
   }
 }
 
+body.poem-page {
+  overflow-x: hidden;
+  overflow-y: auto;
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top, rgba(255, 235, 190, 0.52), transparent 32%),
+    linear-gradient(180deg, #170d2d 0%, #2a1b45 26%, #3b2b5a 46%, #f6d9b7 100%);
+  color: #fff9f3;
+  font-family: "Cormorant Garamond", serif;
+}
+
+body.poem-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(2px 2px at 10% 20%, rgba(255, 255, 255, 0.85), transparent 100%),
+    radial-gradient(2px 2px at 30% 15%, rgba(255, 250, 220, 0.9), transparent 100%),
+    radial-gradient(2px 2px at 60% 12%, rgba(255, 255, 255, 0.75), transparent 100%),
+    radial-gradient(2px 2px at 80% 18%, rgba(255, 250, 220, 0.85), transparent 100%),
+    radial-gradient(2px 2px at 18% 38%, rgba(255, 255, 255, 0.7), transparent 100%),
+    radial-gradient(2px 2px at 70% 35%, rgba(255, 255, 255, 0.8), transparent 100%);
+  opacity: 0.8;
+  pointer-events: none;
+}
+
+.fairy-header {
+  position: relative;
+  padding: 32px clamp(20px, 5vw, 72px) 18px;
+  text-align: center;
+}
+
+.topbar {
+  max-width: 1100px;
+  margin: 0 auto 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.topbar a {
+  color: #f7e7d9;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(247, 231, 217, 0.45);
+  padding-bottom: 2px;
+}
+
+.title-wrap {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 52px 26px 32px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 32px;
+  background: rgba(26, 17, 41, 0.28);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.14), 0 30px 70px rgba(13, 8, 24, 0.35);
+}
+
+.eyebrow {
+  margin-bottom: 14px;
+  color: #f9d0a8;
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+}
+
+.title-wrap h1 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(2.8rem, 6vw, 6rem);
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+  color: #fffaf4;
+  text-shadow: 0 8px 30px rgba(193, 150, 93, 0.35);
+}
+
+.poem-grid {
+  position: relative;
+  z-index: 1;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 20px clamp(20px, 5vw, 72px) 80px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 28px;
+}
+
+.poem-card {
+  position: relative;
+  overflow: hidden;
+  padding: 26px 24px 18px;
+  border-radius: 28px;
+  background: linear-gradient(180deg, rgba(105, 72, 130, 0.42), rgba(60, 52, 90, 0.72));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 18px 45px rgba(18, 12, 30, 0.28);
+}
+
+.poem-card:nth-child(2n) {
+  transform: translateY(18px);
+}
+
+.poem-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), transparent 45%);
+  pointer-events: none;
+}
+
+.poem-icon {
+  font-size: 2.1rem;
+  margin-bottom: 12px;
+}
+
+.poem-card h2 {
+  font-family: "Playfair Display", serif;
+  font-size: clamp(1.9rem, 2vw, 2.6rem);
+  line-height: 1;
+  margin-bottom: 18px;
+  color: #fff5e7;
+}
+
+.poem-card .stanza {
+  margin-bottom: 18px;
+  font-size: clamp(1.3rem, 1.8vw, 1.7rem);
+  line-height: 1.35;
+  color: #fce9d6;
+  text-shadow: 0 2px 12px rgba(14, 6, 20, 0.2);
+}
+
+.poem-card .stanza:last-child {
+  margin-bottom: 0;
+}
+
+.poem-card .signature {
+  display: block;
+  margin-top: 10px;
+  font-family: "Inter", sans-serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #f4d5ab;
+}
+
+@keyframes floaty {
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+.poem-card {
+  animation: floaty 8s ease-in-out infinite;
+}
+
+.poem-card:nth-child(2) { animation-delay: 0.6s; }
+.poem-card:nth-child(3) { animation-delay: 1.2s; }
+.poem-card:nth-child(4) { animation-delay: 1.8s; }
+
 /* Mobile: smaller hint, prevent scrollbars */
 @media (max-width: 767px) and (orientation: portrait) {
   .hint {
     font-size: 12px;
     padding: 8px 16px;
     bottom: 16px;
+  }
+
+  .poem-link {
+    right: 16px;
+    bottom: 18px;
+    padding: 12px 18px;
+    font-size: 0.86rem;
+  }
+
+  .topbar {
+    justify-content: center;
+    letter-spacing: 0.08em;
+    font-size: 0.7rem;
+  }
+
+  .title-wrap {
+    padding-top: 34px;
+    padding-bottom: 22px;
   }
 }
